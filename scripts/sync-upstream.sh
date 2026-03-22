@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
 # Regular sync workflow for forked nullclaw repos.
 #
 # Default branch model:
-#   main        <- rebased onto upstream/main
-#   custom-main <- rebased onto main
-#   release     <- rebased onto custom-main
+#   upstream-base <- fast-forwarded to upstream/main
+#   release       <- rebased onto upstream-base
 #
 # Usage:
 #   scripts/sync-upstream.sh
 #
 # Optional overrides:
-#   BASE_BRANCH=main CUSTOM_BRANCH=custom-main RELEASE_BRANCH=release scripts/sync-upstream.sh
-#   SKIP_RELEASE=1 scripts/sync-upstream.sh
+#   BASE_BRANCH=upstream-base RELEASE_BRANCH=release scripts/sync-upstream.sh
+#   PUSH_BASE=1 PUSH_RELEASE=1 scripts/sync-upstream.sh
 
-BASE_BRANCH="${BASE_BRANCH:-main}"
-CUSTOM_BRANCH="${CUSTOM_BRANCH:-custom-main}"
+UPSTREAM_MAIN_BRANCH="${UPSTREAM_MAIN_BRANCH:-main}"
+BASE_BRANCH="${BASE_BRANCH:-upstream-base}"
 RELEASE_BRANCH="${RELEASE_BRANCH:-release}"
 UPSTREAM_REMOTE="${UPSTREAM_REMOTE:-upstream}"
 ORIGIN_REMOTE="${ORIGIN_REMOTE:-origin}"
-SKIP_RELEASE="${SKIP_RELEASE:-0}"
+PUSH_BASE="${PUSH_BASE:-1}"
+PUSH_RELEASE="${PUSH_RELEASE:-1}"
 
 log() {
   printf "[sync-upstream] %s\n" "$*"
@@ -56,30 +56,26 @@ main() {
   git fetch "$UPSTREAM_REMOTE" --prune
   git fetch "$ORIGIN_REMOTE" --prune
 
-  require_remote_ref "${UPSTREAM_REMOTE}/${BASE_BRANCH}"
+  require_remote_ref "${UPSTREAM_REMOTE}/${UPSTREAM_MAIN_BRANCH}"
   require_branch "$BASE_BRANCH"
-  require_branch "$CUSTOM_BRANCH"
-  if [[ "$SKIP_RELEASE" != "1" ]]; then
-    require_branch "$RELEASE_BRANCH"
+  require_branch "$RELEASE_BRANCH"
+
+  log "Fast-forwarding ${BASE_BRANCH} to ${UPSTREAM_REMOTE}/${UPSTREAM_MAIN_BRANCH}"
+  git switch "$BASE_BRANCH"
+  git merge --ff-only "${UPSTREAM_REMOTE}/${UPSTREAM_MAIN_BRANCH}"
+  if [ "$PUSH_BASE" = "1" ]; then
+    git push "$ORIGIN_REMOTE" "$BASE_BRANCH"
+  else
+    log "Skipping push for ${BASE_BRANCH} (PUSH_BASE=0)"
   fi
 
-  log "Rebasing ${BASE_BRANCH} onto ${UPSTREAM_REMOTE}/${BASE_BRANCH}"
-  git checkout "$BASE_BRANCH"
-  git rebase "${UPSTREAM_REMOTE}/${BASE_BRANCH}"
-  git push "$ORIGIN_REMOTE" "$BASE_BRANCH" --force-with-lease
-
-  log "Rebasing ${CUSTOM_BRANCH} onto ${BASE_BRANCH}"
-  git checkout "$CUSTOM_BRANCH"
+  log "Rebasing ${RELEASE_BRANCH} onto ${BASE_BRANCH}"
+  git switch "$RELEASE_BRANCH"
   git rebase "$BASE_BRANCH"
-  git push "$ORIGIN_REMOTE" "$CUSTOM_BRANCH" --force-with-lease
-
-  if [[ "$SKIP_RELEASE" != "1" ]]; then
-    log "Rebasing ${RELEASE_BRANCH} onto ${CUSTOM_BRANCH}"
-    git checkout "$RELEASE_BRANCH"
-    git rebase "$CUSTOM_BRANCH"
+  if [ "$PUSH_RELEASE" = "1" ]; then
     git push "$ORIGIN_REMOTE" "$RELEASE_BRANCH" --force-with-lease
   else
-    log "Skipping ${RELEASE_BRANCH} (SKIP_RELEASE=1)"
+    log "Skipping push for ${RELEASE_BRANCH} (PUSH_RELEASE=0)"
   fi
 
   log "Done"

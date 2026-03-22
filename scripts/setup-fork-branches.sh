@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
 # One-time setup for fork + upstream branch layout.
-# Defaults target the coderealm-atlas fork and official nullclaw upstream.
+# Default model:
+#   upstream-base <- clean upstream/main mirror
+#   release       <- your customized branch for builds
 #
 # Usage:
 #   scripts/setup-fork-branches.sh
@@ -12,8 +14,8 @@ set -euo pipefail
 
 FORK_URL="${FORK_URL:-https://github.com/coderealm-atlas/nullclaw.git}"
 UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/nullclaw/nullclaw.git}"
-BASE_BRANCH="${BASE_BRANCH:-main}"
-CUSTOM_BRANCH="${CUSTOM_BRANCH:-custom-main}"
+UPSTREAM_MAIN_BRANCH="${UPSTREAM_MAIN_BRANCH:-main}"
+BASE_BRANCH="${BASE_BRANCH:-upstream-base}"
 RELEASE_BRANCH="${RELEASE_BRANCH:-release}"
 
 log() {
@@ -53,9 +55,9 @@ checkout_or_create_from() {
   local branch="$1"
   local start_point="$2"
   if git show-ref --verify --quiet "refs/heads/${branch}"; then
-    git checkout "$branch"
+    git switch "$branch"
   else
-    git checkout -b "$branch" "$start_point"
+    git switch -c "$branch" "$start_point"
   fi
 }
 
@@ -73,26 +75,24 @@ main() {
   log "Fetching remotes"
   git fetch --all --prune
 
-  log "Preparing ${BASE_BRANCH} from upstream/${BASE_BRANCH}"
-  checkout_or_create_from "$BASE_BRANCH" "upstream/${BASE_BRANCH}"
-  git rebase "upstream/${BASE_BRANCH}"
+  if ! git show-ref --verify --quiet "refs/remotes/upstream/${UPSTREAM_MAIN_BRANCH}"; then
+    log "Missing upstream branch: upstream/${UPSTREAM_MAIN_BRANCH}"
+    exit 1
+  fi
+
+  log "Preparing ${BASE_BRANCH} from upstream/${UPSTREAM_MAIN_BRANCH}"
+  checkout_or_create_from "$BASE_BRANCH" "upstream/${UPSTREAM_MAIN_BRANCH}"
+  git merge --ff-only "upstream/${UPSTREAM_MAIN_BRANCH}"
   git push -u origin "$BASE_BRANCH"
 
-  log "Preparing ${CUSTOM_BRANCH} from ${BASE_BRANCH}"
-  checkout_or_create_from "$CUSTOM_BRANCH" "$BASE_BRANCH"
-  git rebase "$BASE_BRANCH"
-  git push -u origin "$CUSTOM_BRANCH"
-
-  log "Preparing ${RELEASE_BRANCH} from ${CUSTOM_BRANCH}"
-  checkout_or_create_from "$RELEASE_BRANCH" "$CUSTOM_BRANCH"
-  git rebase "$CUSTOM_BRANCH"
+  log "Preparing ${RELEASE_BRANCH} from ${BASE_BRANCH}"
+  checkout_or_create_from "$RELEASE_BRANCH" "$BASE_BRANCH"
   git push -u origin "$RELEASE_BRANCH"
 
   log "Done"
   log "Branch model:"
-  log "  ${BASE_BRANCH} tracks upstream sync"
-  log "  ${CUSTOM_BRANCH} carries your custom patches"
-  log "  ${RELEASE_BRANCH} is your stable release line"
+  log "  ${BASE_BRANCH} is the clean upstream sync branch"
+  log "  ${RELEASE_BRANCH} carries your custom patches"
 }
 
 main "$@"
