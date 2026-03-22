@@ -719,8 +719,6 @@ pub fn fetchAccessToken(allocator: std.mem.Allocator, app_id: []const u8, app_se
         }
     };
 
-    log.info("Access_token obtained, expires_in={d}s", .{expires_in});
-
     return .{
         .token = try allocator.dupe(u8, token_str),
         .expires_in = expires_in,
@@ -902,7 +900,7 @@ pub const QQChannel = struct {
         if (self.access_token) |old| self.allocator.free(old);
         self.access_token = result.token;
         self.token_expires_at = now + result.expires_in;
-        log.info("Access token obtained (expires_in={d}s)", .{result.expires_in});
+        log.debug("Access token refreshed (expires_in={d}s)", .{result.expires_in});
         return self.allocator.dupe(u8, result.token);
     }
 
@@ -1316,6 +1314,11 @@ pub const QQChannel = struct {
             var parsed = try parseOutgoingContent(self.allocator, text);
             defer parsed.deinit(self.allocator);
 
+            if (parsed.text.len == 0 and parsed.image_urls.len == 0) {
+                log.warn("QQ outbound dropped: empty text after trim target='{s}' raw_len={d}", .{ target, text.len });
+                return;
+            }
+
             if (parsed.text.len > 0) {
                 var text_it = root.splitMessage(parsed.text, MAX_MESSAGE_LEN);
                 while (text_it.next()) |chunk| {
@@ -1430,11 +1433,11 @@ pub const QQChannel = struct {
         };
         defer self.allocator.free(resp.body);
         if (resp.status_code < 200 or resp.status_code >= 300) {
-            log.err("QQ API send returned HTTP status {d}", .{resp.status_code});
+            log.err("QQ API send returned HTTP status {d}, body={f}", .{ resp.status_code, std.json.fmt(resp.body, .{}) });
             return error.QQApiError;
         }
         ensureQqApiSuccess(self.allocator, resp.body) catch {
-            log.err("QQ API send returned non-zero code payload", .{});
+            log.err("QQ API send returned non-zero code payload, body={f}", .{std.json.fmt(resp.body, .{})});
             return error.QQApiError;
         };
         log.debug("sendChunk: API response_len={d}", .{resp.body.len});

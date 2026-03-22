@@ -667,6 +667,16 @@ pub const MaixCamConfig = struct {
     name: []const u8 = "maixcam",
 };
 
+pub const SmsConfig = struct {
+    account_id: []const u8 = "default",
+    endpoint: []const u8 = "",
+    sender: ?[]const u8 = null,
+    api_key: ?[]const u8 = null,
+    api_key_header: []const u8 = "Authorization",
+    api_key_prefix: []const u8 = "Bearer ",
+    timeout_secs: u32 = 30,
+};
+
 pub const WebConfig = struct {
     pub const DEFAULT_PATH: []const u8 = "/ws";
     pub const DEFAULT_TRANSPORT: []const u8 = "local";
@@ -939,6 +949,7 @@ pub const ChannelsConfig = struct {
     qq: []const QQConfig = &.{},
     onebot: []const OneBotConfig = &.{},
     maixcam: []const MaixCamConfig = &.{},
+    sms: []const SmsConfig = &.{},
     web: []const WebConfig = &.{},
     max: []const MaxConfig = &.{},
     external: []const ExternalChannelConfig = &.{},
@@ -1015,6 +1026,9 @@ pub const ChannelsConfig = struct {
     }
     pub fn maixcamPrimary(self: *const ChannelsConfig) ?MaixCamConfig {
         return primaryAccount(MaixCamConfig, self.maixcam);
+    }
+    pub fn smsPrimary(self: *const ChannelsConfig) ?SmsConfig {
+        return primaryAccount(SmsConfig, self.sms);
     }
     pub fn webPrimary(self: *const ChannelsConfig) ?WebConfig {
         return primaryAccount(WebConfig, self.web);

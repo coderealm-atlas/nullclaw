@@ -295,6 +295,7 @@ pub const line = @import("line.zig");
 pub const onebot = @import("onebot.zig");
 pub const qq = @import("qq.zig");
 pub const maixcam = @import("maixcam.zig");
+pub const sms = @import("sms.zig");
 pub const signal = @import("signal.zig");
 pub const external = @import("external.zig");
 pub const web = if (@import("build_options").enable_channel_web)

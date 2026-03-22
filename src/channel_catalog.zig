@@ -25,6 +25,7 @@ pub const ChannelId = enum {
     onebot,
     maixcam,
     external,
+    sms,
     nostr,
     web,
     max,
@@ -69,6 +70,9 @@ pub const known_channels = [_]ChannelMeta{
     .{ .id = .onebot, .key = "onebot", .label = "OneBot", .configured_message = "OneBot configured", .listener_mode = .gateway_loop },
     .{ .id = .maixcam, .key = "maixcam", .label = "MaixCam", .configured_message = "MaixCam configured", .listener_mode = .send_only },
     .{ .id = .external, .key = "external", .label = "External", .configured_message = "External channel configured", .listener_mode = .gateway_loop },
+    .{ .id = .sms, .key = "sms", .label = "SMS", .configured_message = "SMS configured", .listener_mode = .send_only },
+    .{ .id = .external, .key = "external", .label = "External", .configured_message = "External channel configured", .listener_mode = .gateway_loop },
+    .{ .id = .sms, .key = "sms", .label = "SMS", .configured_message = "SMS configured", .listener_mode = .send_only },
     .{ .id = .nostr, .key = "nostr", .label = "Nostr", .configured_message = "Nostr configured", .listener_mode = .gateway_loop },
     .{ .id = .web, .key = "web", .label = "Web", .configured_message = "Web configured", .listener_mode = .gateway_loop },
     .{ .id = .max, .key = "max", .label = "Max", .configured_message = "Max configured", .listener_mode = .polling },
@@ -98,6 +102,9 @@ pub fn isBuildEnabled(channel_id: ChannelId) bool {
         .onebot => build_options.enable_channel_onebot,
         .maixcam => build_options.enable_channel_maixcam,
         .external => true,
+        .sms => build_options.enable_channel_sms,
+        .external => true,
+        .sms => build_options.enable_channel_sms,
         .nostr => build_options.enable_channel_nostr,
         .web => build_options.enable_channel_web,
         .max => build_options.enable_channel_max,
@@ -127,6 +134,9 @@ pub fn isBuildEnabledByKey(comptime key: []const u8) bool {
     if (comptime std.mem.eql(u8, key, "onebot")) return build_options.enable_channel_onebot;
     if (comptime std.mem.eql(u8, key, "maixcam")) return build_options.enable_channel_maixcam;
     if (comptime std.mem.eql(u8, key, "external")) return true;
+    if (comptime std.mem.eql(u8, key, "sms")) return build_options.enable_channel_sms;
+    if (comptime std.mem.eql(u8, key, "external")) return true;
+    if (comptime std.mem.eql(u8, key, "sms")) return build_options.enable_channel_sms;
     if (comptime std.mem.eql(u8, key, "nostr")) return build_options.enable_channel_nostr;
     if (comptime std.mem.eql(u8, key, "web")) return build_options.enable_channel_web;
     if (comptime std.mem.eql(u8, key, "max")) return build_options.enable_channel_max;
@@ -157,6 +167,9 @@ pub fn configuredCount(cfg: *const Config, channel_id: ChannelId) usize {
         .onebot => cfg.channels.onebot.len,
         .maixcam => cfg.channels.maixcam.len,
         .external => cfg.channels.external.len,
+        .sms => cfg.channels.sms.len,
+        .external => cfg.channels.external.len,
+        .sms => cfg.channels.sms.len,
         .nostr => if (cfg.channels.nostr != null) 1 else 0,
         .web => cfg.channels.web.len,
         .max => cfg.channels.max.len,
