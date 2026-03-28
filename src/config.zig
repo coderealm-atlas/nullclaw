@@ -109,7 +109,6 @@ pub const QQReceiveMode = config_types.QQReceiveMode;
 pub const QQConfig = config_types.QQConfig;
 pub const OneBotConfig = config_types.OneBotConfig;
 pub const MaixCamConfig = config_types.MaixCamConfig;
-pub const SmsConfig = config_types.SmsConfig;
 pub const WebConfig = config_types.WebConfig;
 pub const ChannelsConfig = config_types.ChannelsConfig;
 pub const MemoryConfig = config_types.MemoryConfig;
